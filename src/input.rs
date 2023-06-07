@@ -116,16 +116,20 @@ pub trait Input<'a>: Sealed + 'a {
         }
     }
 
-    /// Make this input implement [`SliceInput`] by indexing into the provided slice with the input offset range.
+    /// Make this input implement [`SliceInput`] by using the given slice when performing slicing operations.
     ///
-    /// This is useful if you want to have an input over a token type refer back to a slice of the raw input that it
-    /// came from.
-    fn with_slice<S>(self, slice: S) -> WithSliceFn<S, Self>
+    /// This is useful if you want to have an input that produces 'high-level' tokens be able to refer back to a slice
+    /// of the raw input that it originated from.
+    ///
+    /// # Examples
+    ///
+    /// See the `logos` example in the main repository.
+    fn with_slice<S>(self, slice: S) -> WithSlice<S, Self>
     where
         Self: Sized,
         S: SliceInput<'a>,
     {
-        WithSliceFn { input: self, slice }
+        WithSlice { input: self, slice }
     }
 }
 
@@ -638,13 +642,13 @@ where
 
 /// An input wrapper that provides slices via the given closure. See [`Input::with_slices`].
 #[derive(Copy, Clone)]
-pub struct WithSliceFn<S, I> {
+pub struct WithSlice<S, I> {
     input: I,
     slice: S,
 }
 
-impl<S, I> Sealed for WithSliceFn<S, I> {}
-impl<'a, S: 'a, I: Input<'a>> Input<'a> for WithSliceFn<S, I> {
+impl<S, I> Sealed for WithSlice<S, I> {}
+impl<'a, S: 'a, I: Input<'a>> Input<'a> for WithSlice<S, I> {
     type Offset = I::Offset;
     type Token = I::Token;
     type Span = I::Span;
@@ -672,7 +676,7 @@ impl<'a, S: 'a, I: Input<'a>> Input<'a> for WithSliceFn<S, I> {
     }
 }
 
-impl<'a, S: 'a, I: Input<'a>> ExactSizeInput<'a> for WithSliceFn<S, I>
+impl<'a, S: 'a, I: Input<'a>> ExactSizeInput<'a> for WithSlice<S, I>
 where
     S: ExactSizeInput<'a, Span = I::Span, Offset = <I::Span as Span>::Offset>,
 {
@@ -685,21 +689,21 @@ where
     }
 }
 
-impl<'a, S: 'a, I: ValueInput<'a>> ValueInput<'a> for WithSliceFn<S, I> {
+impl<'a, S: 'a, I: ValueInput<'a>> ValueInput<'a> for WithSlice<S, I> {
     #[inline(always)]
     unsafe fn next(&self, offset: Self::Offset) -> (Self::Offset, Option<Self::Token>) {
         self.input.next(offset)
     }
 }
 
-impl<'a, S: 'a, I: BorrowInput<'a>> BorrowInput<'a> for WithSliceFn<S, I> {
+impl<'a, S: 'a, I: BorrowInput<'a>> BorrowInput<'a> for WithSlice<S, I> {
     #[inline(always)]
     unsafe fn next_ref(&self, offset: Self::Offset) -> (Self::Offset, Option<&'a Self::Token>) {
         self.input.next_ref(offset)
     }
 }
 
-impl<'a, S: 'a, I: Input<'a>> SliceInput<'a> for WithSliceFn<S, I>
+impl<'a, S: 'a, I: Input<'a>> SliceInput<'a> for WithSlice<S, I>
 where
     S: SliceInput<'a, Offset = <I::Span as Span>::Offset>,
 {
@@ -722,7 +726,7 @@ where
     }
 }
 
-impl<'a, S: 'a, C, I> StrInput<'a, C> for WithSliceFn<S, I>
+impl<'a, S: 'a, C, I> StrInput<'a, C> for WithSlice<S, I>
 where
     I: StrInput<'a, C>,
     S: SliceInput<'a, Offset = <I::Span as Span>::Offset, Slice = &'a C::Str>,
