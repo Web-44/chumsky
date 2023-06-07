@@ -141,7 +141,7 @@ pub trait ExactSizeInput<'a>: Input<'a> {
 }
 
 /// Implemented by inputs that represent slice-like streams of input tokens.
-pub trait SliceInput<'a>: Input<'a> {
+pub trait SliceInput<'a>: ExactSizeInput<'a> {
     /// The unsized slice type of this input. For [`&str`] it's `&str`, and for [`&[T]`] it will be `&[T]`.
     type Slice;
 
@@ -705,7 +705,7 @@ impl<'a, S: 'a, I: BorrowInput<'a>> BorrowInput<'a> for WithSlice<S, I> {
 
 impl<'a, S: 'a, I: Input<'a>> SliceInput<'a> for WithSlice<S, I>
 where
-    S: SliceInput<'a, Offset = <I::Span as Span>::Offset>,
+    S: SliceInput<'a, Span = I::Span, Offset = <I::Span as Span>::Offset>,
 {
     type Slice = S::Slice;
 
@@ -729,7 +729,7 @@ where
 impl<'a, S: 'a, C, I> StrInput<'a, C> for WithSlice<S, I>
 where
     I: StrInput<'a, C>,
-    S: SliceInput<'a, Offset = <I::Span as Span>::Offset, Slice = &'a C::Str>,
+    S: SliceInput<'a, Span = I::Span, Offset = <I::Span as Span>::Offset, Slice = &'a C::Str>,
     C: Char<Str = S>,
 {
 }
