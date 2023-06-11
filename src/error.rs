@@ -216,11 +216,11 @@ impl From<SimpleLabel> for Option<&'static str> {
 /// implement [`Error`] for your own error type or use [`Cheap`] instead.
 #[derive(Clone, Debug)]
 pub struct Simple<I: Hash + Eq, S = Range<usize>> {
-    pub span: S,
-    pub reason: SimpleReason<I, S>,
-    pub expected: HashSet<Option<I>, RandomState>,
-    pub found: Option<I>,
-    pub label: SimpleLabel,
+    span: S,
+    reason: SimpleReason<I, S>,
+    expected: HashSet<Option<I>, RandomState>,
+    found: Option<I>,
+    label: SimpleLabel,
 }
 
 impl<I: Hash + Eq, S: Clone> Simple<I, S> {
