@@ -163,7 +163,7 @@ pub enum SimpleReason<I, S> {
         delimiter: I,
     },
     /// An error with a custom message occurred.
-    Custom(String),
+    Custom(String, String),
 }
 
 impl<I: fmt::Display, S: fmt::Display> fmt::Display for SimpleReason<I, S> {
@@ -175,7 +175,7 @@ impl<I: fmt::Display, S: fmt::Display> fmt::Display for SimpleReason<I, S> {
             Self::Unclosed { span, delimiter } => {
                 write!(f, "unclosed delimiter ({}) in {}", span, delimiter)
             }
-            Self::Custom(string) => write!(f, "error {}", string),
+            Self::Custom(string, solution) => write!(f, "error {} (try: {})", string, solution),
         }
     }
 }
@@ -216,19 +216,19 @@ impl From<SimpleLabel> for Option<&'static str> {
 /// implement [`Error`] for your own error type or use [`Cheap`] instead.
 #[derive(Clone, Debug)]
 pub struct Simple<I: Hash + Eq, S = Range<usize>> {
-    span: S,
-    reason: SimpleReason<I, S>,
-    expected: HashSet<Option<I>, RandomState>,
-    found: Option<I>,
-    label: SimpleLabel,
+    pub span: S,
+    pub reason: SimpleReason<I, S>,
+    pub expected: HashSet<Option<I>, RandomState>,
+    pub found: Option<I>,
+    pub label: SimpleLabel,
 }
 
 impl<I: Hash + Eq, S: Clone> Simple<I, S> {
     /// Create an error with a custom error message.
-    pub fn custom<M: ToString>(span: S, msg: M) -> Self {
+    pub fn custom<M: ToString>(span: S, msg: M, solution: M) -> Self {
         Self {
             span,
-            reason: SimpleReason::Custom(msg.to_string()),
+            reason: SimpleReason::Custom(msg.to_string(), solution.to_string()),
             expected: HashSet::default(),
             found: None,
             label: SimpleLabel::None,
@@ -273,7 +273,7 @@ impl<I: Hash + Eq, S: Clone> Simple<I, S> {
                     delimiter: f(delimiter),
                 },
                 SimpleReason::Unexpected => SimpleReason::Unexpected,
-                SimpleReason::Custom(msg) => SimpleReason::Custom(msg),
+                SimpleReason::Custom(msg, sol) => SimpleReason::Custom(msg, sol),
             },
             expected: self.expected.into_iter().map(|e| e.map(&mut f)).collect(),
             found: self.found.map(f),
